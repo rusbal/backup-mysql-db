@@ -24,4 +24,9 @@ module Settings
   #
   EXTRA_MYSQL_CONFIG = File.expand_path('../.extra.my.cnf', __FILE__)
 
+  #
+  # List of ignore databases which will not be processed.
+  #
+  IGNORE_TABLES = ['Database', 'information_schema', 'performance_schema']
+
 end

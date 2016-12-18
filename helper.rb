@@ -36,6 +36,6 @@ module Helper
     output_dir = File.absolute_path(File.join(dir, '..'))
     compressed_file = File.join(output_dir, output_tar)
     exec_command "cd #{output_dir} && tar -czvf #{compressed_file} #{basedir}"
-    puts "Compressed to: #{compressed_file}"
+    compressed_file
   end
 end

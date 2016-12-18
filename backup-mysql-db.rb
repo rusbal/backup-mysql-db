@@ -15,30 +15,25 @@
 require_relative 'helper'
 require_relative 'settings'
 
-db_command = "show databases"
 db_extra_config = "--defaults-extra-file=#{Settings::EXTRA_MYSQL_CONFIG}"
-response = Helper::exec_command "echo '#{db_command}' | mysql #{db_extra_config}"
 
-ignore_from_response = ['Database', 'information_schema', 'performance_schema']
+tmp_dir = File.join(Settings::BACKUP_DIR, Time.new.strftime("%Y%m%d.%H%M%S"))
+Dir.mkdir(tmp_dir) unless File.exists?(tmp_dir)
 
-output_directory = File.join(Settings::BACKUP_DIR, Time.new.strftime("%Y%m%d.%H%M%S"))
-Dir.mkdir(output_directory) unless File.exists?(output_directory)
-
-puts '-----'
+puts "\n--- mysqldump ---"
+response = Helper::exec_command "echo 'show databases' | mysql #{db_extra_config}"
 res = response.split "\n"
-res.each do |db_name|
-  unless ignore_from_response.include? db_name
-    sqldump_file = "#{db_name}.sqldump.sql"
-    output = File.join(output_directory, sqldump_file)
-    Helper::exec_command "mysqldump #{db_extra_config} #{db_name} -r #{output}"
-    puts "#{db_name}: #{output}"
-  end
+res = res.select { |db| not Settings::IGNORE_TABLES.include? db }
+
+res.each do |db|
+  output = File.join(tmp_dir, "#{db}.sqldump.sql")
+  Helper::exec_command "mysqldump #{db_extra_config} #{db} -r #{output}"
+  puts "#{db}: #{File.size(output)}"
 end
-puts '-----'
 
-Helper::compress output_directory, 'DB_BACKUP'
+puts "\n--- tar ---"
+compressed_file = Helper::compress tmp_dir, 'DB_BACKUP'
+puts "\nCompressed to: #{compressed_file} #{File.size(compressed_file)}"
 
-Helper::exec_command "rm -rf #{output_directory}"
-
-puts '-----'
+Helper::exec_command "rm -rf #{tmp_dir}"
 puts "Done."
